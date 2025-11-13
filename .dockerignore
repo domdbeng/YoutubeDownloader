@@ -1,0 +1,17 @@
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+venv/
+env/
+.venv
+Downloaded_MP3s/
+Downloaded_Videos/
+*.zip
+.git
+.gitignore
+*.md
+.vscode
+.idea
+

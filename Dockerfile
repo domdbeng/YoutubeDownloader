@@ -28,5 +28,6 @@ ENV PORT=5000
 
 # Run the application with gunicorn
 # Use --preload to start cleanup thread once, and --timeout for long video downloads
-CMD gunicorn --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 300 --preload app:app
+# Render sets PORT environment variable automatically
+CMD exec gunicorn --bind 0.0.0.0:${PORT:-5000} --workers 2 --threads 4 --timeout 300 --preload app:app
 
