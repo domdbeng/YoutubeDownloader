@@ -465,8 +465,22 @@
 
         function showError(message) {
             const errorDiv = document.getElementById('error');
-            errorDiv.textContent = message;
+            // Format error message better
+            let errorMessage = message;
+            if (message.includes('verification') || message.includes('bot')) {
+                errorMessage = '⚠️ YouTube is requiring verification. This may happen if too many requests are made. Please try again in a few minutes. If the issue persists, YouTube may be blocking automated access temporarily.';
+            } else if (message.includes('Private video')) {
+                errorMessage = '❌ This video is private and cannot be downloaded.';
+            } else if (message.includes('unavailable')) {
+                errorMessage = '❌ This video is unavailable or has been removed.';
+            }
+            errorDiv.textContent = errorMessage;
             errorDiv.classList.add('active');
+            
+            // Auto-hide error after 10 seconds
+            setTimeout(() => {
+                errorDiv.classList.remove('active');
+            }, 10000);
         }
 
         async function startDownload() {
