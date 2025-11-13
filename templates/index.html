@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Downloader</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        input[type="text"], select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 20px;
+            margin-top: 10px;
+        }
+
+        .radio-option {
+            flex: 1;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .radio-option:hover {
+            border-color: #667eea;
+            background: #f5f5ff;
+        }
+
+        .radio-option input[type="radio"] {
+            margin-right: 8px;
+        }
+
+        .radio-option.selected {
+            border-color: #667eea;
+            background: #667eea;
+            color: white;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .preview-section {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .preview-section.active {
+            display: block;
+        }
+
+        .video-preview {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .video-preview iframe {
+            width: 100%;
+            max-width: 800px;
+            height: 450px;
+            border-radius: 8px;
+            border: none;
+        }
+
+        .video-info {
+            margin-top: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+        }
+
+        .video-info h3 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .video-info p {
+            color: #666;
+            margin: 5px 0;
+        }
+
+        .playlist-videos {
+            margin-top: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .playlist-video-item {
+            padding: 10px;
+            margin: 5px 0;
+            background: white;
+            border-radius: 5px;
+            border-left: 3px solid #667eea;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            display: none;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .download-section {
+            margin-top: 20px;
+            padding: 20px;
+            background: #e8f5e9;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .download-section.active {
+            display: block;
+        }
+
+        .download-button {
+            background: #4caf50;
+            margin-top: 10px;
+        }
+
+        .download-button:hover {
+            box-shadow: 0 5px 15px rgba(76, 175, 80, 0.4);
+        }
+
+        .file-list {
+            margin-top: 15px;
+        }
+
+        .file-item {
+            padding: 12px;
+            margin: 8px 0;
+            background: white;
+            border-radius: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-left: 3px solid #4caf50;
+        }
+
+        .file-name {
+            flex: 1;
+            font-weight: 500;
+            color: #333;
+            margin-right: 10px;
+            word-break: break-word;
+        }
+
+        .file-size {
+            font-size: 0.9em;
+            color: #666;
+            margin-right: 10px;
+        }
+
+        .file-download-btn {
+            padding: 8px 16px;
+            background: #4caf50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+
+        .file-download-btn:hover {
+            background: #45a049;
+        }
+
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .error.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎵 YouTube Downloader</h1>
+            <p>Download videos or playlists as audio or video</p>
+        </div>
+        
+        <div class="content">
+            <form id="downloadForm">
+                <div class="form-group">
+                    <label for="url">YouTube URL</label>
+                    <input type="text" id="url" name="url" placeholder="https://www.youtube.com/watch?v=..." required>
+                </div>
+
+                <div class="form-group">
+                    <label>Media Type</label>
+                    <div class="radio-group">
+                        <div class="radio-option" onclick="selectRadio('media_type', 'video')">
+                            <input type="radio" name="media_type" value="video" id="media_video" checked>
+                            <label for="media_video" style="margin: 0; cursor: pointer;">Single Video</label>
+                        </div>
+                        <div class="radio-option" onclick="selectRadio('media_type', 'playlist')">
+                            <input type="radio" name="media_type" value="playlist" id="media_playlist">
+                            <label for="media_playlist" style="margin: 0; cursor: pointer;">Playlist</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Download Format</label>
+                    <div class="radio-group">
+                        <div class="radio-option" onclick="selectRadio('format_type', 'audio')">
+                            <input type="radio" name="format_type" value="audio" id="format_audio" checked>
+                            <label for="format_audio" style="margin: 0; cursor: pointer;">Audio Only (MP3)</label>
+                        </div>
+                        <div class="radio-option" onclick="selectRadio('format_type', 'video')">
+                            <input type="radio" name="format_type" value="video" id="format_video">
+                            <label for="format_video" style="margin: 0; cursor: pointer;">Video + Audio</label>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="button" onclick="previewVideo()">Preview Video</button>
+            </form>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Loading preview...</p>
+            </div>
+
+            <div class="error" id="error"></div>
+
+            <div class="preview-section" id="previewSection">
+                <h2>Preview</h2>
+                <div id="previewContent"></div>
+                <button type="button" onclick="startDownload()" class="download-button">Download</button>
+            </div>
+
+            <div class="loading" id="downloadLoading">
+                <div class="spinner"></div>
+                <p>Downloading... This may take a while.</p>
+            </div>
+
+            <div class="download-section" id="downloadSection">
+                <h2>Download Complete!</h2>
+                <p>Your files are ready to download.</p>
+                <div class="file-list" id="fileList"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let previewData = null;
+        let downloadId = null;
+
+        function selectRadio(name, value) {
+            document.querySelectorAll(`input[name="${name}"]`).forEach(radio => {
+                radio.checked = radio.value === value;
+            });
+            document.querySelectorAll('.radio-option').forEach(option => {
+                const radio = option.querySelector('input[type="radio"]');
+                if (radio && radio.name === name) {
+                    option.classList.toggle('selected', radio.checked);
+                }
+            });
+        }
+
+        // Initialize radio button states
+        document.addEventListener('DOMContentLoaded', () => {
+            selectRadio('media_type', 'video');
+            selectRadio('format_type', 'audio');
+        });
+
+        async function previewVideo() {
+            const url = document.getElementById('url').value;
+            if (!url) {
+                showError('Please enter a YouTube URL');
+                return;
+            }
+
+            const mediaType = document.querySelector('input[name="media_type"]:checked').value;
+            
+            document.getElementById('loading').classList.add('active');
+            document.getElementById('previewSection').classList.remove('active');
+            document.getElementById('error').classList.remove('active');
+
+            try {
+                const response = await fetch('/preview', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ url: url })
+                });
+
+                const data = await response.json();
+
+                if (data.error) {
+                    showError(data.error);
+                    return;
+                }
+
+                previewData = data;
+                displayPreview(data);
+            } catch (error) {
+                showError('Error fetching preview: ' + error.message);
+            } finally {
+                document.getElementById('loading').classList.remove('active');
+            }
+        }
+
+        function displayPreview(data) {
+            const previewContent = document.getElementById('previewContent');
+            
+            if (data.type === 'playlist') {
+                previewContent.innerHTML = `
+                    <div class="video-info">
+                        <h3>${data.title}</h3>
+                        <p><strong>Uploader:</strong> ${data.uploader}</p>
+                        <p><strong>Videos:</strong> ${data.video_count}</p>
+                        <div class="playlist-videos">
+                            ${data.videos.map((video, index) => `
+                                <div class="playlist-video-item">
+                                    <strong>${index + 1}. ${video.title}</strong>
+                                    <p style="font-size: 0.9em; color: #999;">Duration: ${formatDuration(video.duration)}</p>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    ${data.videos.length > 0 ? `
+                        <div class="video-preview">
+                            <iframe src="https://www.youtube.com/embed/${data.videos[0].id}" allowfullscreen></iframe>
+                        </div>
+                    ` : ''}
+                `;
+            } else {
+                previewContent.innerHTML = `
+                    <div class="video-info">
+                        <h3>${data.title}</h3>
+                        <p><strong>Uploader:</strong> ${data.uploader}</p>
+                        <p><strong>Duration:</strong> ${formatDuration(data.duration)}</p>
+                    </div>
+                    <div class="video-preview">
+                        <iframe src="https://www.youtube.com/embed/${data.id}" allowfullscreen></iframe>
+                    </div>
+                `;
+            }
+
+            document.getElementById('previewSection').classList.add('active');
+        }
+
+        function formatDuration(seconds) {
+            if (!seconds) return 'Unknown';
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            errorDiv.textContent = message;
+            errorDiv.classList.add('active');
+        }
+
+        async function startDownload() {
+            if (!previewData) {
+                showError('Please preview the video first');
+                return;
+            }
+
+            const url = document.getElementById('url').value;
+            const mediaType = document.querySelector('input[name="media_type"]:checked').value;
+            const formatType = document.querySelector('input[name="format_type"]:checked').value;
+
+            document.getElementById('downloadLoading').classList.add('active');
+            document.getElementById('downloadSection').classList.remove('active');
+
+            try {
+                const response = await fetch('/download', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        url: url,
+                        media_type: mediaType,
+                        format_type: formatType
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.error) {
+                    showError(data.error);
+                    return;
+                }
+
+                downloadId = data.download_id;
+                checkDownloadStatus();
+            } catch (error) {
+                showError('Error starting download: ' + error.message);
+                document.getElementById('downloadLoading').classList.remove('active');
+            }
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+        }
+
+        async function checkDownloadStatus() {
+            if (!downloadId) return;
+
+            try {
+                const response = await fetch(`/check_download/${downloadId}`);
+                const data = await response.json();
+
+                if (data.status === 'complete') {
+                    document.getElementById('downloadLoading').classList.remove('active');
+                    displayDownloadFiles(data.files, data.folder);
+                    document.getElementById('downloadSection').classList.add('active');
+                } else if (data.status === 'error') {
+                    document.getElementById('downloadLoading').classList.remove('active');
+                    showError('Download failed: ' + (data.error || 'Unknown error'));
+                } else if (data.status === 'processing') {
+                    setTimeout(checkDownloadStatus, 2000); // Check again in 2 seconds
+                }
+            } catch (error) {
+                showError('Error checking download status: ' + error.message);
+                document.getElementById('downloadLoading').classList.remove('active');
+            }
+        }
+
+        function displayDownloadFiles(files, folder) {
+            const fileList = document.getElementById('fileList');
+            
+            if (!files || files.length === 0) {
+                fileList.innerHTML = '<p>No files available for download.</p>';
+                return;
+            }
+
+            fileList.innerHTML = files.map(file => {
+                const downloadUrl = `/download_file/${downloadId}/${folder}/${encodeURIComponent(file.path)}`;
+                return `
+                    <div class="file-item">
+                        <div class="file-name">${file.name}</div>
+                        <div class="file-size">${formatFileSize(file.size)}</div>
+                        <a href="${downloadUrl}" class="file-download-btn" download>Download</a>
+                    </div>
+                `;
+            }).join('');
+        }
+    </script>
+</body>
+</html>
+
