@@ -26,13 +26,54 @@ CLEANUP_INTERVAL = 300  # Check every 5 minutes
 FILE_MAX_AGE = 3600  # Delete files older than 1 hour (3600 seconds)
 
 
-def get_video_info(url):
-    """Extract video/playlist information without downloading"""
-    ydl_opts = {
+def get_base_ydl_opts():
+    """Get base yt-dlp options to avoid bot detection"""
+    return {
         'quiet': True,
         'no_warnings': True,
         'extract_flat': False,
+        # Reduce bot detection - make requests look like a browser
+        'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'referer': 'https://www.youtube.com/',
+        'http_headers': {
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'DNT': '1',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1',
+            'Sec-Fetch-Dest': 'document',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'none',
+            'Cache-Control': 'max-age=0',
+        },
+        # Additional options to avoid detection
+        'no_check_certificate': False,
+        'prefer_insecure': False,
+        'sleep_interval': 1,
+        'max_sleep_interval': 3,
+        'sleep_interval_requests': 1,
+        # Retry options
+        'retries': 10,
+        'fragment_retries': 10,
+        'file_access_retries': 3,
+        # Ignore errors and continue
+        'ignoreerrors': True,
+        # Use Android client which often avoids bot detection better
+        'extractor_args': {
+            'youtube': {
+                'player_client': ['android'],  # Use Android client which often works better
+            }
+        },
+        # Additional YouTube-specific options
+        'skip_unavailable_fragments': True,
+        'keep_fragments': False,
     }
+
+
+def get_video_info(url):
+    """Extract video/playlist information without downloading"""
+    ydl_opts = get_base_ydl_opts()
     
     try:
         with YoutubeDL(ydl_opts) as ydl:
@@ -75,7 +116,14 @@ def get_video_info(url):
                     'url': f"https://www.youtube.com/watch?v={video_id}"
                 }
     except Exception as e:
-        return {'error': str(e)}
+        error_msg = str(e)
+        # Provide more helpful error messages
+        if 'Sign in to confirm' in error_msg or 'bot' in error_msg.lower():
+            return {
+                'error': 'YouTube is requiring verification. This may happen if too many requests are made. Please try again in a few minutes, or the video may require authentication.',
+                'error_type': 'verification_required'
+            }
+        return {'error': error_msg}
 
 
 def download_media(url, media_type, format_type, download_id):
@@ -99,9 +147,13 @@ def download_media(url, media_type, format_type, download_id):
         temp_folder = os.path.join(base_folder, download_id)
         os.makedirs(temp_folder, exist_ok=True)
         
+        # Get base options to avoid bot detection
+        base_opts = get_base_ydl_opts()
+        
         if media_type == 'playlist':
             if format_type == 'audio':
                 ydl_opts = {
+                    **base_opts,
                     'format': 'bestaudio/best',
                     'outtmpl': os.path.join(temp_folder, '%(playlist_index)s - %(title)s.%(ext)s'),
                     'postprocessors': [{
@@ -109,18 +161,18 @@ def download_media(url, media_type, format_type, download_id):
                         'preferredcodec': 'mp3',
                         'preferredquality': '192',
                     }],
-                    'quiet': True,
                 }
             else:  # video
                 ydl_opts = {
+                    **base_opts,
                     'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio/best[ext=mp4]/best',
                     'outtmpl': os.path.join(temp_folder, '%(playlist_index)s - %(title)s.%(ext)s'),
                     'merge_output_format': 'mp4',
-                    'quiet': True,
                 }
         else:  # single video
             if format_type == 'audio':
                 ydl_opts = {
+                    **base_opts,
                     'format': 'bestaudio/best',
                     'outtmpl': os.path.join(temp_folder, '%(title)s.%(ext)s'),
                     'postprocessors': [{
@@ -128,14 +180,13 @@ def download_media(url, media_type, format_type, download_id):
                         'preferredcodec': 'mp3',
                         'preferredquality': '192',
                     }],
-                    'quiet': True,
                 }
             else:  # video
                 ydl_opts = {
+                    **base_opts,
                     'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio/best[ext=mp4]/best',
                     'outtmpl': os.path.join(temp_folder, '%(title)s.%(ext)s'),
                     'merge_output_format': 'mp4',
-                    'quiet': True,
                 }
         
         with YoutubeDL(ydl_opts) as ydl:
@@ -182,6 +233,14 @@ def download_media(url, media_type, format_type, download_id):
         return {'status': 'success', 'files': file_info}
     except Exception as e:
         error_msg = str(e)
+        # Provide more helpful error messages
+        if 'Sign in to confirm' in error_msg or 'bot' in error_msg.lower():
+            error_msg = 'YouTube is requiring verification. This may happen if too many requests are made. Please try again in a few minutes.'
+        elif 'Private video' in error_msg:
+            error_msg = 'This video is private and cannot be downloaded.'
+        elif 'Video unavailable' in error_msg:
+            error_msg = 'This video is unavailable or has been removed.'
+        
         download_status[download_id] = {'status': 'error', 'error': error_msg, 'files': [], 'folder': None}
         # Clean up on error
         try:
